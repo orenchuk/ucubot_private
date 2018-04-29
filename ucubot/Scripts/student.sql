@@ -1,0 +1,7 @@
+USE ucubot;
+CREATE TABLE student (
+		Id INT(20) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        FirstName VARCHAR(120) NOT NULL,
+        LastName VARCHAR(120) NOT NULL,
+        UserId VARCHAR(120) NOT NULL UNIQUE
+);
