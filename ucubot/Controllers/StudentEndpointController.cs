@@ -23,22 +23,22 @@ namespace ucubot.Controllers
         }
         
         [HttpGet]
-        public IEnumerable<LessonSignalDto> ShowStudents()
+        public IEnumerable<Student> ShowStudents()
         {
             using (var conn = new MySqlConnection(connectionString))
             {
                 const string query = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student;";
-                return conn.Query<LessonSignalDto>(query).ToList();
+                return conn.Query<Student>(query).ToList();
             }
         }
         
         [HttpGet("{id}")]
-        public LessonSignalDto ShowStudent(long id)
+        public Student ShowStudent(long id)
         {
             using (var conn = new MySqlConnection(connectionString))
             {
                 const string query = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE id = @id;";
-                var signals = conn.Query<LessonSignalDto>(query).ToList();
+                var signals = conn.Query<Student>(query).ToList();
                 return signals.Any() ? signals.First() : null; 
             }
         }
@@ -89,8 +89,8 @@ namespace ucubot.Controllers
             using (var conn = new MySqlConnection(connectionString))
             {
                 const string selectQuery = "SELECT * FROM lesson_signal WHERE student_id = @ID;";
-                var students = conn.Query<Student>(selectQuery, new {ID = id}).ToList();
-                if (students.Any())
+                var signals = conn.Query<LessonSignalDto>(selectQuery, new {ID = id}).ToList();
+                if (signals.Any())
                 {
                     return StatusCode(409);
                 }
