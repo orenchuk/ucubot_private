@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -37,8 +38,8 @@ namespace ucubot.Controllers
         {
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string query = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE id = @id;";
-                var signals = conn.Query<Student>(query).ToList();
+                const string query = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE id = @ID;";
+                var signals = conn.Query<Student>(query, new {ID = id}).ToList();
                 return signals.Any() ? signals.First() : null; 
             }
         }
