@@ -1,8 +1,6 @@
 ALTER TABLE lesson_signal DROP COLUMN UserId;
-
-ALTER TABLE lesson_signal ADD student_id INT(20) NOT NULL;
-
+ALTER TABLE lesson_signal ADD student_id VARCHAR(120) NOT NULL UNIQUE;
 ALTER TABLE lesson_signal ADD FOREIGN KEY (student_id)
-	REFERENCES student(Id)
+	REFERENCES student(UserId)
     ON DELETE RESTRICT
     ON UPDATE RESTRICT;
