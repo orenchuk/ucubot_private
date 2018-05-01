@@ -61,9 +61,8 @@ namespace ucubot.Controllers
                 }
                 const string insertQuery = "INSERT INTO lesson_signal (student_id, SignalType, TimeStamp_) VALUES (@StudentID, @signal_type, @time_stamp);";
                 var student = listOfStudents.First();
-                Console.WriteLine("student: ", student.FirstName);
                 conn.Query<LessonSignalDto>(insertQuery,
-                    new {StudentID = student.Id, signal_type = signalType, time_stamp = DateTime.Now});                   
+                    new {StudentID = student.UserId, signal_type = signalType, time_stamp = DateTime.Now});                   
             }
             
             return Accepted();
