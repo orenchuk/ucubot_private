@@ -38,8 +38,8 @@ namespace ucubot.Controllers
             var connectionString = _configuration.GetConnectionString("BotDatabase");
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string query = "SELECT lesson_signal.ID as id, lesson_signal.Timestamp_ as time_stamp, lesson_signal.SignalType as signal_type, lesson_signal.student_id as student_id  FROM lesson_signal LEFT JOIN (student) ON (lesson_signal.student_id = student.UserId) WHERE id = @id;";
-                var signals = conn.Query<LessonSignalDto>(query).ToList();
+                const string query = "SELECT lesson_signal.ID as id, lesson_signal.Timestamp_ as time_stamp, lesson_signal.SignalType as signal_type, lesson_signal.student_id as student_id  FROM lesson_signal LEFT JOIN (student) ON (lesson_signal.student_id = student.UserId) WHERE student.ID = @ID;";
+                var signals = conn.Query<LessonSignalDto>(query, new {ID = id}).ToList();
                 return signals.Any() ? signals.First() : null; 
             }
         }
@@ -53,37 +53,6 @@ namespace ucubot.Controllers
             
             using (var conn = new MySqlConnection(connectionString))
             {  
-                /*
-                conn.Open();
-                var cmd = conn.CreateCommand();
-                const string studentUseridQuery = "SELECT * FROM student WHERE student.UserId = @UserId";
-                var exist = conn.CreateCommand();
-                exist.CommandText = studentUseridQuery;
-                exist.Parameters.Add("userId", userId);
-                
-                var adapter = new MySqlDataAdapter(exist);
-                var _dataTable = new DataTable();
-                adapter.Fill(_dataTable);
-                if (_dataTable.Rows.Count < 1)
-                {
-                    return BadRequest();
-                }
-                else
-                {
-                    cmd.Parameters.AddRange(new[]
-                    {
-                        new MySqlParameter("user_id", userId),
-                        new MySqlParameter("signal_type", signalType),
-                        new MySqlParameter("time_stamp", DateTime.Now)
-                    });
-                    cmd.CommandText =
-                        "INSERT INTO lesson_signal (UserID, SignalType, TimeStamp_) VALUES (@user_id, @signal_type, @time_stamp);";
-                    await cmd.ExecuteNonQueryAsync();
-                }
-
-                conn.Close();
-            */
-                
                 const string studentUseridQuery = "SELECT * FROM student WHERE student.UserId = @UserId";
                 var listOfStudents = conn.Query<Student>(studentUseridQuery, new {UserId = userId}).ToList();
                 if (!listOfStudents.Any())

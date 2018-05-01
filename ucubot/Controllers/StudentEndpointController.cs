@@ -53,8 +53,8 @@ namespace ucubot.Controllers
 
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string selectQuery = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE UserId = @id;";
-                var createdStudents = conn.Query<Student>(selectQuery, new {id = student.Id}).ToList();
+                const string selectQuery = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE UserId = @UserID;";
+                var createdStudents = conn.Query<Student>(selectQuery, new {UserID = userId}).ToList();
                 
                 if (createdStudents.Any())
                 {
@@ -74,11 +74,12 @@ namespace ucubot.Controllers
             var FirstName = student.FirstName;
             var LastName = student.LastName;
             var UserId = student.UserId;
+            var id = student.Id;
 
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string query = "UPDATE student SET FirstName = @firstName, LastName = @lastName, UserId = @userid WHERE Id = @id;";
-                conn.Query<Student>(query, new {firstName = FirstName, lastName = LastName, userid = UserId});
+                const string query = "UPDATE student SET FirstName = @firstName, LastName = @lastName, UserId = @userid WHERE Id = @ID;";
+                conn.Query<Student>(query, new {firstName = FirstName, lastName = LastName, userid = UserId, ID = id});
             }
 
             return Accepted();
@@ -96,7 +97,7 @@ namespace ucubot.Controllers
                     return StatusCode(409);
                 }
 
-                const string deleteQuery = "DELETE FROM student WHERE id = @ID;";
+                const string deleteQuery = "DELETE FROM student WHERE Id = @ID;";
                 conn.Query<Student>(deleteQuery, new {ID = id});
             }
 
