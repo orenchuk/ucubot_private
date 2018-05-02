@@ -27,7 +27,7 @@ namespace ucubot.Controllers
             var  connectionString = _configuration.GetConnectionString("BotDatabase");
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string query = "SELECT lesson_signal.ID as Id, lesson_signal.Timestamp_ as Timestamp, lesson_signal.SignalType as Type, lesson_signal.student_id as UserId FROM lesson_signal LEFT JOIN (student) ON (lesson_signal.student_id = student.UserId);";
+                const string query = "SELECT lesson_signal.ID as Id, lesson_signal.Timestamp_ as Timestamp, lesson_signal.SignalType as Type, student.UserId as UserId FROM lesson_signal LEFT JOIN (student) ON (lesson_signal.student_id = student.Id);";
                 return conn.Query<LessonSignalDto>(query).ToList();
             }
         }
@@ -38,7 +38,7 @@ namespace ucubot.Controllers
             var connectionString = _configuration.GetConnectionString("BotDatabase");
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string query = "SELECT lesson_signal.ID as Id, lesson_signal.Timestamp_ as Timestamp, lesson_signal.SignalType as Type, lesson_signal.student_id as UserId FROM lesson_signal LEFT JOIN (student) ON (lesson_signal.student_id = student.UserId) WHERE lesson_signal.ID = @ID;";
+                const string query = "SELECT lesson_signal.ID as Id, lesson_signal.Timestamp_ as Timestamp, lesson_signal.SignalType as Type, student.UserId as UserId FROM lesson_signal LEFT JOIN (student) ON (lesson_signal.student_id = student.Id) WHERE lesson_signal.ID = @ID;";
                 var signals = conn.Query<LessonSignalDto>(query, new {ID = id}).ToList();
                 return signals.Any() ? signals.First() : null; 
             }
@@ -59,10 +59,10 @@ namespace ucubot.Controllers
                 {
                     return BadRequest();
                 }
-                const string insertQuery = "INSERT INTO lesson_signal (student_id, SignalType, TimeStamp_) VALUES (@StudentID, @signal_type, @time_stamp);";
+                const string insertQuery = "INSERT INTO lesson_signal (student_id, SignalType, TimeStamp_) VALUES (@ID, @signal_type, @time_stamp);";
                 var student = listOfStudents.First();
                 conn.Query<LessonSignalDto>(insertQuery,
-                    new {StudentID = student.UserId, signal_type = signalType, time_stamp = DateTime.Now});                   
+                    new {ID = student.Id, signal_type = signalType, time_stamp = DateTime.Now});                   
             }
             
             return Accepted();

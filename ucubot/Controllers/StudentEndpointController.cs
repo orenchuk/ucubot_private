@@ -90,10 +90,8 @@ namespace ucubot.Controllers
         {
             using (var conn = new MySqlConnection(connectionString))
             {
-                const string studentByID = "SELECT * FROM student WHERE Id = @ID";
-                var student = conn.Query<Student>(studentByID, new {ID = id}).First();
-                const string selectQuery = "SELECT * FROM lesson_signal WHERE student_id = @suid;";
-                var signals = conn.Query<LessonSignalDto>(selectQuery, new {suid = student.UserId}).ToList();
+                const string selectQuery = "SELECT * FROM lesson_signal WHERE student_id = @ID;";
+                var signals = conn.Query<LessonSignalDto>(selectQuery, new {ID = id}).ToList();
                 if (signals.Any())
                 {
                     return StatusCode(409);
