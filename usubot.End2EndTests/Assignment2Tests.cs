@@ -20,10 +20,7 @@ namespace usubot.End2EndTests
     [Category("Assignment2")]
     public class Assignment2Tests
     {
-        private const string CONNECTION_STRING_NODB = "Server=db;Uid=root;Pwd=1qaz2wsx";
-        private const string CONNECTION_STRING = "Server=db;Database=ucubot;Uid=root;Pwd=1qaz2wsx";
-
-        private HttpClient _client;
+        protected HttpClient _client;
 
         [SetUp]
         public void Init()
@@ -34,110 +31,83 @@ namespace usubot.End2EndTests
         [Test, Order(-10)]
         public void Preparation()
         {
-            // HACK: waits few seconds to give a time for mysql container to start
-            Thread.Sleep(3000);
-            Assert.That(true);
-            
-            // clean data
-            using (var conn = new MySqlConnection(CONNECTION_STRING_NODB))
-            {
-                conn.Open();
-                var command = conn.CreateCommand();
-                command.CommandText = "DROP DATABASE IF EXISTS ucubot;";
-                command.ExecuteNonQuery();
-                
-                var users = ExecuteDataTable("SELECT User, Host FROM mysql.user;", conn);
-                foreach (DataRow row in users.Rows)
-                {
-                    var name = (string) row["User"];
-                    if (name == "root") continue;
-                    var host = (string) row["Host"];
-
-                    var cmd = $"DROP USER '{name}'@'{host}';";
-                    var command2 = conn.CreateCommand();
-                    command2.CommandText = cmd;
-                    command2.ExecuteNonQuery();
-                }
-                
-                var users2 = MapDataTableToStringCollection(ExecuteDataTable("SELECT User, Host FROM mysql.user;", conn)).ToArray();
-                users2.Length.Should().Be(2);
-            }
+            Utils.CleanDatabase(Connection.CONNECTION_STRING_NODB);
         }
         
-        [Test, Order(1)]
+        [Test, Order(10)]
         public void TestDatabaseWasCreated()
         {
             // create database test
-            var dbScript = ReadMysqlScript("db");
-            using (var conn = new MySqlConnection(CONNECTION_STRING_NODB))
+            var dbScript = Utils.ReadMysqlScript("db");
+            using (var conn = new MySqlConnection(Connection.CONNECTION_STRING_NODB))
             {
                 conn.Open();
                 
-                var users1 = MapDataTableToStringCollection(ExecuteDataTable("SELECT User FROM mysql.user;", conn)).ToArray();
+                var users1 = Utils.MapDataTableToStringCollection(Utils.ExecuteDataTable("SELECT User FROM mysql.user;", conn)).ToArray();
                 users1.Length.Should().BeGreaterThan(1); // we don't know actual name of the user...
                 
                 var command = conn.CreateCommand();
                 command.CommandText = dbScript;
                 command.ExecuteNonQuery();
 
-                var databases = MapDataTableToStringCollection(ExecuteDataTable("SHOW DATABASES;", conn)).ToArray();
+                var databases = Utils.MapDataTableToStringCollection(Utils.ExecuteDataTable("SHOW DATABASES;", conn)).ToArray();
                 databases.Should().Contain("ucubot");
 
-                var users = MapDataTableToStringCollection(ExecuteDataTable("SELECT User FROM mysql.user;", conn)).ToArray();
+                var users = Utils.MapDataTableToStringCollection(Utils.ExecuteDataTable("SELECT User FROM mysql.user;", conn)).ToArray();
                 users.Length.Should().Be(3); // we don't know actual name of the user, and there is only root exists after cleanup
             }
         }
 
-        [Test, Order(2)]
+        [Test, Order(20)]
         public void Test_Student_TableWasCreated()
         {
             // create database test
-            var dbScript = ReadMysqlScript("student");
-            using (var conn = new MySqlConnection(CONNECTION_STRING))
+            var dbScript = Utils.ReadMysqlScript("student");
+            using (var conn = new MySqlConnection(Connection.CONNECTION_STRING))
             {
                 conn.Open();
                 var command = conn.CreateCommand();
                 command.CommandText = dbScript;
                 command.ExecuteNonQuery();
                 
-                var tables = MapDataTableToStringCollection(ExecuteDataTable("SHOW TABLES;", conn)).ToArray();
+                var tables = Utils.MapDataTableToStringCollection(Utils.ExecuteDataTable("SHOW TABLES;", conn)).ToArray();
                 tables.Should().Contain("student");
             }
         }
         
-        [Test, Order(3)]
+        [Test, Order(30)]
         public void Test_LessonSignal_TableWasCreated()
         {
             // create database test
-            var dbScript = ReadMysqlScript("lesson-signal");
-            var dbScript2 = ReadMysqlScript("lesson-signal2");
-            using (var conn = new MySqlConnection(CONNECTION_STRING))
+            var dbScript = Utils.ReadMysqlScript("lesson-signal");
+            var dbScript2 = Utils.ReadMysqlScript("lesson-signal2");
+            using (var conn = new MySqlConnection(Connection.CONNECTION_STRING))
             {
                 conn.Open();
                 var command = conn.CreateCommand();
                 command.CommandText = dbScript;
                 command.ExecuteNonQuery();
                 
-                var tables = MapDataTableToStringCollection(ExecuteDataTable("SHOW TABLES;", conn)).ToArray();
+                var tables = Utils.MapDataTableToStringCollection(Utils.ExecuteDataTable("SHOW TABLES;", conn)).ToArray();
                 tables.Should().Contain("lesson_signal");
                 
                 var command2 = conn.CreateCommand();
                 command2.CommandText = dbScript2;
                 command2.ExecuteNonQuery();
                 
-                var constranints = MapDataTableToStringCollection(ExecuteDataTable(@"SELECT REFERENCED_TABLE_NAME 
+                var constranints = Utils.MapDataTableToStringCollection(Utils.ExecuteDataTable(@"SELECT REFERENCED_TABLE_NAME 
 FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubot'
  AND TABLE_NAME = 'lesson_signal'", conn)).ToArray();
                 constranints.Should().Contain("student");
             }
         }
 
-        [Test, Order(4)]
+        [Test, Order(40)]
         public async Task Test_Student_GetCreateGetUpdateGetDeleteGet()
         {
             // check is empty
             var getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            var values = ParseJson<Student[]>(getResponse);
+            var values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(0);
             
             // create
@@ -148,11 +118,11 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 new KeyValuePair<string, string>("LastName", "popov")
             });
             var createResponse = await _client.PostAsync("/api/StudentEndpoint", content);
-            createResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(createResponse.StatusCode));
             
             // check
             getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            values = ParseJson<Student[]>(getResponse);
+            values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(1);
             values[0].UserId.Should().Be("U111");
             values[0].FirstName.Should().Be("vasya");
@@ -167,11 +137,11 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 new KeyValuePair<string, string>("LastName", "petrov")
             });
             var updateResponse = await _client.PutAsync("/api/StudentEndpoint", content);
-            updateResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(updateResponse.StatusCode));
             
             // check
             getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            values = ParseJson<Student[]>(getResponse);
+            values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(1);
             values[0].UserId.Should().Be("U111");
             values[0].FirstName.Should().Be("vasya");
@@ -179,27 +149,27 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
             
             // check by id
             getResponse = await _client.GetStringAsync($"/api/StudentEndpoint/{values[0].Id}");
-            var value = ParseJson<Student>(getResponse);
+            var value = Utils.ParseJson<Student>(getResponse);
             value.UserId.Should().Be("U111");
             value.FirstName.Should().Be("vasya");
             value.LastName.Should().Be("petrov");
             
             // delete
             var deleteResponse = await _client.DeleteAsync($"/api/StudentEndpoint/{values[0].Id}");
-            deleteResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(deleteResponse.StatusCode));
             
             // check
             getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            values = ParseJson<Student[]>(getResponse);
+            values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(0);
         }
         
-        [Test, Order(5)]
+        [Test, Order(50)]
         public async Task Test_Student_SqlInjectionFail()
         {
             // check is empty
             var getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            var values = ParseJson<Student[]>(getResponse);
+            var values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(0);
             
             // create another with attack
@@ -210,20 +180,20 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 new KeyValuePair<string, string>("LastName", "2")
             });
             var createResponse = await _client.PostAsync("/api/StudentEndpoint", content);
-            createResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(createResponse.StatusCode));
             
             // check
             getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            values = ParseJson<Student[]>(getResponse);
+            values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(1);
         }
         
-        [Test, Order(6)]
+        [Test, Order(60)]
         public async Task Test_Student_NonExistRecordReturns404()
         {
             // get previous values
             var getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            var values = ParseJson<Student[]>(getResponse);
+            var values = Utils.ParseJson<Student[]>(getResponse);
             var newId = values.Select(v => v.Id).Max() + 1;
             
             // check
@@ -232,12 +202,12 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 $"Non exists record response should not be {response.StatusCode}");
         }
         
-        [Test, Order(7)]
+        [Test, Order(70)]
         public async Task Test_Student_UserIdUnique()
         {
             // check is empty
             var getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            var values = ParseJson<Student[]>(getResponse);
+            var values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(1);
             
             // create new
@@ -248,7 +218,7 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 new KeyValuePair<string, string>("LastName", "2")
             });
             var createResponse = await _client.PostAsync("/api/StudentEndpoint", content);
-            createResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(createResponse.StatusCode));
             
             // create second with the same user_id
             content = new FormUrlEncodedContent(new[]
@@ -262,16 +232,16 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
             
             // check
             getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            values = ParseJson<Student[]>(getResponse);
+            values = Utils.ParseJson<Student[]>(getResponse);
             values.Length.Should().Be(2);
         }
         
-        [Test, Order(8)]
+        [Test, Order(80)]
         public async Task Test_LessonSignal_GetCreateGetDeleteGet()
         {
             // check is empty
             var getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            var values = ParseJson<LessonSignalDto[]>(getResponse);
+            var values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             values.Length.Should().Be(0);
             
             // create with user_id already exists
@@ -281,31 +251,31 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 new KeyValuePair<string, string>("text", "simple")
             });
             var createResponse = await _client.PostAsync("/api/LessonSignalEndpoint", content);
-            createResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(createResponse.StatusCode));
             
             // check
             getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            values = ParseJson<LessonSignalDto[]>(getResponse);
+            values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             values.Length.Should().Be(1);
             values[0].UserId.Should().Be("U111");
             values[0].Type.Should().Be(LessonSignalType.BoringSimple);
             
             // delete
             var deleteResponse = await _client.DeleteAsync($"/api/LessonSignalEndpoint/{values[0].Id}");
-            deleteResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(deleteResponse.StatusCode));
             
             // check
             getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            values = ParseJson<LessonSignalDto[]>(getResponse);
+            values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             values.Length.Should().Be(0);
         }
         
-        [Test, Order(9)]
+        [Test, Order(90)]
         public async Task Test_LessonSignal_NonExistRecordReturns404()
         {
             // get previous values
             var getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            var values = ParseJson<LessonSignalDto[]>(getResponse);
+            var values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             var newId = values.Length > 0 ? values.Select(v => v.Id).Max() + 1 : 1;
             
             // check
@@ -314,7 +284,7 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 $"Non exists record response should not be {response.StatusCode}");
         }
         
-        [Test, Order(10)]
+        [Test, Order(100)]
         public async Task Test_LessonSignal_CanNotCreateForNonExistsStudent()
         {
             // create with user_id non exists
@@ -328,21 +298,21 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
             
             // check
             var getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            var values = ParseJson<LessonSignalDto[]>(getResponse);
+            var values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             values.Length.Should().Be(0);
         }
         
-        [Test, Order(11)]
+        [Test, Order(110)]
         public async Task Test_Student_LessonSignal_CanNotDeleteWithChildRecords()
         {
             // check students non empty
             var getResponseStudents = await _client.GetStringAsync("/api/StudentEndpoint");
-            var valuesStudents = ParseJson<Student[]>(getResponseStudents);
+            var valuesStudents = Utils.ParseJson<Student[]>(getResponseStudents);
             valuesStudents.Length.Should().Be(2);
             
             // check lesson signal is empty
             var getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            var values = ParseJson<LessonSignalDto[]>(getResponse);
+            var values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             values.Length.Should().Be(0);
             
             // create lesson signal with user_id already exists
@@ -352,11 +322,11 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
                 new KeyValuePair<string, string>("text", "simple")
             });
             var createResponse = await _client.PostAsync("/api/LessonSignalEndpoint", content);
-            createResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(createResponse.StatusCode));
             
             // check lesson signal is non empty
             getResponse = await _client.GetStringAsync("/api/LessonSignalEndpoint");
-            values = ParseJson<LessonSignalDto[]>(getResponse);
+            values = Utils.ParseJson<LessonSignalDto[]>(getResponse);
             values.Length.Should().Be(1);
             
             // try delete student
@@ -365,60 +335,22 @@ FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'ucubo
             
             // check ls
             getResponse = await _client.GetStringAsync("/api/StudentEndpoint");
-            valuesStudents = ParseJson<Student[]>(getResponse);
+            valuesStudents = Utils.ParseJson<Student[]>(getResponse);
             valuesStudents.Length.Should().Be(2);
             
             // delete lesson signal
             var deleteResponse = await _client.DeleteAsync($"/api/LessonSignalEndpoint/{values[0].Id}");
-            deleteResponse.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(deleteResponse.StatusCode));
             
             // delete student
             var deleteResponse2 = await _client.DeleteAsync($"/api/StudentEndpoint/{valuesStudents[0].Id}");
-            deleteResponse2.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            Assert.IsTrue(new[] {HttpStatusCode.OK, HttpStatusCode.Accepted}.Contains(deleteResponse2.StatusCode));
         }
 
         [TearDown]
         public void Done()
         {
             _client.Dispose();
-        }
-
-        private string ReadMysqlScript(string scriptName)
-        {
-            using (var reader = new StreamReader(File.OpenRead($"/app/ucubot/Scripts/{scriptName}.sql")))
-            {
-                return reader.ReadToEnd();
-            }
-        }
-
-        private DataTable ExecuteDataTable(string sqlCommand, MySqlConnection conn)
-        {
-            var adapter = new MySqlDataAdapter(sqlCommand, conn);
-
-            var dataset = new DataSet();
-
-            adapter.Fill(dataset);
-
-            return dataset.Tables[0];
-        }
-
-        private IEnumerable<string> MapDataTableToStringCollection(DataTable table)
-        {
-            foreach (DataRow row in table.Rows)
-            {
-                yield return row[0].ToString();
-            }
-        }
-
-        private T ParseJson<T>(string json)
-        {
-            return JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings
-            {
-                ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new SnakeCaseNamingStrategy()
-                }
-            });
         }
     }
 }
