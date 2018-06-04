@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
 using Dapper;
+using ucubot.Repository;
 
 namespace ucubot.Controllers
 {
@@ -15,54 +16,36 @@ namespace ucubot.Controllers
     public class StudentEndpointController : Controller
     {
         private readonly IConfiguration _configuration;
+        private readonly IStudentRepository _studentRepository;
         private string connectionString;
 
         public StudentEndpointController(IConfiguration configuration)
         {
             _configuration = configuration;
             connectionString = _configuration.GetConnectionString("BotDatabase");
+            _studentRepository = new StudentRepository(connectionString);
         }
         
         [HttpGet]
         public IEnumerable<Student> ShowStudents()
         {
-            using (var conn = new MySqlConnection(connectionString))
-            {
-                const string query = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student;";
-                return conn.Query<Student>(query).ToList();
-            }
+            return _studentRepository.GetAll();
         }
         
         [HttpGet("{id}")]
         public Student ShowStudent(long id)
         {
-            using (var conn = new MySqlConnection(connectionString))
-            {
-                const string query = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE id = @ID;";
-                var signals = conn.Query<Student>(query, new {ID = id}).ToList();
-                return signals.Any() ? signals.First() : null; 
-            }
+            return _studentRepository.GetById(id);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateStudent(Student student)
         {
-            var firstName = student.FirstName;
-            var lastName = student.LastName;
-            var userId = student.UserId;
+            var wasCreated = _studentRepository.Insert(student);
 
-            using (var conn = new MySqlConnection(connectionString))
+            if (!wasCreated)
             {
-                const string selectQuery = "SELECT student.FirstName as FirstName, student.Id as Id, student.LastName as LastName, student.UserId as UserId FROM student WHERE UserId = @UserID;";
-                var createdStudents = conn.Query<Student>(selectQuery, new {UserID = userId}).ToList();
-                
-                if (createdStudents.Any())
-                {
-                    return StatusCode(409);
-                }
-
-                const string insertQuery = "INSERT INTO student (FirstName, LastName, UserId) VALUES (@first_name, @last_name, @user_id);";
-                conn.Query<Student>(insertQuery, new {first_name = firstName, last_name = lastName, user_id = userId});
+                return StatusCode(409); 
             }
 
             return Accepted();
@@ -71,16 +54,7 @@ namespace ucubot.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateStudent(Student student)
         {
-            var FirstName = student.FirstName;
-            var LastName = student.LastName;
-            var UserId = student.UserId;
-            var id = student.Id;
-
-            using (var conn = new MySqlConnection(connectionString))
-            {
-                const string query = "UPDATE student SET FirstName = @firstName, LastName = @lastName, UserId = @userid WHERE Id = @ID;";
-                conn.Query<Student>(query, new {firstName = FirstName, lastName = LastName, userid = UserId, ID = id});
-            }
+            _studentRepository.Update(student);
 
             return Accepted();
         }
@@ -88,17 +62,11 @@ namespace ucubot.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemoveStudent(long id)
         {
-            using (var conn = new MySqlConnection(connectionString))
-            {
-                const string selectQuery = "SELECT * FROM lesson_signal WHERE student_id = @ID;";
-                var signals = conn.Query<LessonSignalDto>(selectQuery, new {ID = id}).ToList();
-                if (signals.Any())
-                {
-                    return StatusCode(409);
-                }
+            var wasCreated = _studentRepository.RemoveById(id);
 
-                const string deleteQuery = "DELETE FROM student WHERE Id = @ID;";
-                conn.Query<Student>(deleteQuery, new {ID = id});
+            if (!wasCreated)
+            {
+                return StatusCode(409);
             }
 
             return Accepted();

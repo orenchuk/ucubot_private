@@ -13,6 +13,7 @@ using Ninject;
 using Ninject.Activation;
 using Ninject.Infrastructure.Disposal;
 using ucubot.Infrastructure;
+using ucubot.Repository;
 
 namespace ucubot
 {
@@ -58,6 +59,9 @@ namespace ucubot
 //            services.AddCustomControllerActivation(Resolve);
 //            services.AddCustomViewComponentActivation(Resolve);
             services.AddSingleton<IConfiguration>(f => Configuration);
+            services.AddSingleton<IStudentRepository, StudentRepository>();
+            services.AddSingleton<ILessonSignalRepository, LessonSignalRepository>();
+            services.AddSingleton<IStudentSignalsRepository, StudentSignalsRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
