@@ -17,12 +17,11 @@ namespace ucubot.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly ILessonSignalRepository _signalRepository;
-        private string connectionString;
 
         public LessonSignalEndpointController(IConfiguration configuration)
         {
             _configuration = configuration;
-            connectionString = _configuration.GetConnectionString("BotDatabase");
+            var connectionString = _configuration.GetConnectionString("BotDatabase");
             _signalRepository = new LessonSignalRepository(connectionString);
         }
 
