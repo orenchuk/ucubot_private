@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
 
@@ -11,10 +12,12 @@ namespace ucubot.Repository
     public class StudentRepository : IStudentRepository
     {
         private string connectionString;
+        private readonly IConfiguration configuration;
 
-        public StudentRepository(string connectionString)
+        public StudentRepository(IConfiguration configuration)
         {
-            this.connectionString = connectionString;
+            this.configuration = configuration;
+            connectionString = configuration.GetConnectionString("BotDatabase");
         }
 
         public bool Insert(Student student)

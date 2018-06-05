@@ -15,14 +15,12 @@ namespace ucubot.Controllers
     [Route("api/[controller]")]
     public class StudentEndpointController : Controller
     {
-        private readonly IConfiguration _configuration;
         private readonly IStudentRepository _studentRepository;
 
         public StudentEndpointController(IConfiguration configuration)
         {
-            _configuration = configuration;
-            var connectionString = _configuration.GetConnectionString("BotDatabase");
-            _studentRepository = new StudentRepository(connectionString);
+            var connectionString = configuration.GetConnectionString("BotDatabase");
+            _studentRepository = new StudentRepository(configuration);
         }
         
         [HttpGet]

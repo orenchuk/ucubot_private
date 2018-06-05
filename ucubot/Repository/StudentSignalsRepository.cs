@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
 
@@ -8,11 +9,13 @@ namespace ucubot.Repository
 {
     public class StudentSignalsRepository : IStudentSignalsRepository
     {
+        private readonly IConfiguration configuration;
         private readonly string connectionString;
 
-        public StudentSignalsRepository(string connectionString)
+        public StudentSignalsRepository(IConfiguration configuration)
         {
-            this.connectionString = connectionString;
+            this.configuration = configuration;
+            connectionString = configuration.GetConnectionString("BotDatabase");
         }
 
         public IEnumerable<StudentSignal> GetAll()

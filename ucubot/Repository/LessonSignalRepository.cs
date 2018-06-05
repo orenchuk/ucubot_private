@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
 
@@ -11,11 +12,13 @@ namespace ucubot.Repository
 {
     public class LessonSignalRepository : ILessonSignalRepository
     {
+        private readonly IConfiguration configuration;
         private readonly string connectionString;
 
-        public LessonSignalRepository(string connectionString)
+        public LessonSignalRepository(IConfiguration configuration)
         {
-            this.connectionString = connectionString;
+            this.configuration = configuration;
+            connectionString = configuration.GetConnectionString("BotDatabase");
         }
 
         public bool Insert(SlackMessage message)
