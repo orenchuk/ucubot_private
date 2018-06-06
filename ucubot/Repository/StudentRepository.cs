@@ -12,11 +12,9 @@ namespace ucubot.Repository
     public class StudentRepository : IStudentRepository
     {
         private string connectionString;
-        private readonly IConfiguration configuration;
 
         public StudentRepository(IConfiguration configuration)
         {
-            this.configuration = configuration;
             connectionString = configuration.GetConnectionString("BotDatabase");
         }
 

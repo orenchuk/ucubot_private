@@ -15,30 +15,29 @@ namespace ucubot.Controllers
     [Route("api/[controller]")]
     public class LessonSignalEndpointController : Controller
     {
-        private readonly ILessonSignalRepository _signalRepository;
+        private readonly ILessonSignalRepository signalRepository;
 
-        public LessonSignalEndpointController(IConfiguration configuration)
+        public LessonSignalEndpointController(ILessonSignalRepository lessonSignalRepository)
         {
-            var connectionString = configuration.GetConnectionString("BotDatabase");
-            _signalRepository = new LessonSignalRepository(configuration);
+            signalRepository = lessonSignalRepository;
         }
 
         [HttpGet]
         public IEnumerable<LessonSignalDto> ShowSignals()
         {
-            return _signalRepository.GetAll();
+            return signalRepository.GetAll();
         }
         
         [HttpGet("{id}")]
         public LessonSignalDto ShowSignal(long id)
         {
-            return _signalRepository.GetById(id);
+            return signalRepository.GetById(id);
         }
         
         [HttpPost]
         public async Task<IActionResult> CreateSignal(SlackMessage message)
         {
-            var wasCreated = _signalRepository.Insert(message);
+            var wasCreated = signalRepository.Insert(message);
 
             if (!wasCreated)
             {
@@ -51,7 +50,7 @@ namespace ucubot.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemoveSignal(long id)
         {
-            _signalRepository.RemoveById(id);
+            signalRepository.RemoveById(id);
             
             return Accepted();
         }

@@ -9,18 +9,17 @@ namespace ucubot.Controllers
     [Route("api/[controller]")]
     public class StudentSignalsEndpointController : Controller
     {
-        private readonly IStudentSignalsRepository _studentSignalsRepository;
+        private readonly IStudentSignalsRepository studentSignalsRepository;
 
-        public StudentSignalsEndpointController(IConfiguration configuration)
+        public StudentSignalsEndpointController(IStudentSignalsRepository studentSignalsRepository)
         {
-            var connectionString = configuration.GetConnectionString("BotDatabase");
-            _studentSignalsRepository = new StudentSignalsRepository(configuration);
+            this.studentSignalsRepository = studentSignalsRepository;
         }
 
         [HttpGet]
         public IEnumerable<StudentSignal> ShowSignals()
         {
-            return _studentSignalsRepository.GetAll();
+            return studentSignalsRepository.GetAll();
         }
     }
 }
